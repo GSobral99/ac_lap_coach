@@ -1,28 +1,51 @@
-import mmap
-import ctypes
-import time
+"""
+Grava voltas completas do Assetto Corsa em ficheiros CSV,
+para depois serem comparadas (ghost lap, delta, travagem, etc).
 
-class SPageFileGraphics(ctypes.Structure):
-    _fields_ = [
-        ("packetId", ctypes.c_int),
-        ("status", ctypes.c_int),
-        ("session", ctypes.c_int),
-        ("currTime", ctypes.c_wchar * 15),
-        ("lstTime", ctypes.c_wchar * 15),
-        ("bstTime", ctypes.c_wchar * 15),
-        ("split", ctypes.c_wchar * 15),
-        ("completedLaps", ctypes.c_int),
-        ("position", ctypes.c_int),
-        ("iCurrentTime", ctypes.c_int),
-        ("iLastTime", ctypes.c_int),
-        ("iBestTime", ctypes.c_int),
-        ("sessionTimeLeft", ctypes.c_float),
-        ("distanceTraveled", ctypes.c_float),
-        ("isInPit", ctypes.c_int),
-        ("currentSectorIndex", ctypes.c_int),
-        ("lastSectorTime", ctypes.c_int),
-        ("numberOfLaps", ctypes.c_int),
-        ("tyreCompound", ctypes.c_wchar * 33),
-        ("replayTimeMultiplier", ctypes.c_float),
-        ("normalizedCarPosition", ctypes.c_float),
-    ]
+Usa as funções de capture.py para ligar e ler a shared memory
+(physics + graphics); este ficheiro trata só da gravação.
+"""
+
+import time
+from capture import connect_physics, connect_graphics, read_physics, read_graphics
+
+# a fazer:
+# - start_recording()
+# - record_frame(physics, graphics)
+# - deteção de mudança de volta (completedLaps a aumentar)
+# - save_lap_to_csv(frames, lap_number)
+
+
+def main():
+    print("A tentar ligar a shared memory do Assetto Corsa...")
+    print("(Certifica-te que o AC esta aberto E numa pista, nao so no menu)\n")
+
+    try:
+        shm_physics = connect_physics()
+        shm_graphics = connect_graphics()
+    except Exception as e:
+        print(f"Erro ao abrir shared memory: {e}")
+        print("Verifica se o Assetto Corsa esta a correr.")
+        return
+
+    print("Ligado! A ler dados (Ctrl+C para parar)...\n")
+
+    try:
+        while True:
+            p = read_physics(shm_physics)
+            g = read_graphics(shm_graphics)
+            print(
+                f"Speed: {p.speedKmh:6.1f} km/h | "
+                f"Position: {g.normalizedCarPosition:.3f} | "
+                f"Laps: {g.completedLaps:2d}"
+            )
+            time.sleep(0.1)
+    except KeyboardInterrupt:
+        print("\nParado pelo utilizador.")
+    finally:
+        shm_physics.close()
+        shm_graphics.close()
+
+
+if __name__ == "__main__":
+    main()
