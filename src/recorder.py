@@ -8,12 +8,35 @@ Usa as funções de capture.py para ligar e ler a shared memory
 
 import time
 from capture import connect_physics, connect_graphics, read_physics, read_graphics
+import pandas as pd
+import os
 
 # a fazer:
 # - start_recording()
 # - record_frame(physics, graphics)
 # - deteção de mudança de volta (completedLaps a aumentar)
 # - save_lap_to_csv(frames, lap_number)
+
+
+def record_frame(physics, graphics):
+    frame = {
+        "position": graphics.normalizedCarPosition,
+        "speed": physics.speedKmh,
+        "gas": physics.gas,
+        "brake": physics.brake,
+        "gear": physics.gear,
+        "timestamp": time.time(),
+    }
+    return frame
+
+def start_recording():
+    return []
+
+def save_lap_to_csv(frames, lap_number):
+    os.makedirs("data", exist_ok=True)
+    df = pd.DataFrame(frames)
+    df.to_csv(f"data/lap_{lap_number}.csv", index=False)
+    print(f"Volta {lap_number} guardada em data/lap_{lap_number}.csv ({len(frames)} frames)")
 
 
 def main():
@@ -31,9 +54,18 @@ def main():
     print("Ligado! A ler dados (Ctrl+C para parar)...\n")
 
     try:
+        last_laps = 0
+        frames = start_recording() 
         while True:
             p = read_physics(shm_physics)
             g = read_graphics(shm_graphics)
+            
+            frame = record_frame(p, g)
+            frames.append(frame)
+            if g.completedLaps > last_laps:
+                save_lap_to_csv(frames, g.completedLaps)
+                frames = start_recording()
+                last_laps = g.completedLaps
             print(
                 f"Speed: {p.speedKmh:6.1f} km/h | "
                 f"Position: {g.normalizedCarPosition:.3f} | "
