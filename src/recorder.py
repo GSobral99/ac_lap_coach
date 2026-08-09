@@ -38,6 +38,21 @@ def save_lap_to_csv(frames, lap_number):
     df.to_csv(f"data/lap_{lap_number}.csv", index=False)
     print(f"Volta {lap_number} guardada em data/lap_{lap_number}.csv ({len(frames)} frames)")
 
+def find_best_lap(data_folder="data"):
+    best_lap_file = None
+    best_duration = None
+    for filename in os.listdir(data_folder):
+        if filename.endswith(".csv"):
+            filepath = os.path.join(data_folder, filename)
+            df = pd.read_csv(filepath)
+            duration = df["timestamp"].iloc[-1] - df["timestamp"].iloc[0]
+            
+            if best_duration is None or duration < best_duration:
+                best_duration = duration
+                best_lap_file = filepath
+    return best_lap_file, best_duration
+
+
 
 def main():
     print("A tentar ligar a shared memory do Assetto Corsa...")
