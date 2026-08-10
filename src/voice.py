@@ -1,10 +1,11 @@
-import pyttsx3
-
-import time
+import subprocess
 
 def speak(messages):
-    engine = pyttsx3.init()
-    for message in messages:
-        engine.say(message)
-        engine.runAndWait()
-        time.sleep(0.3)
+    full_text = ". ".join(messages)
+    full_text = full_text.replace('"', "'")
+    command = f'Add-Type -AssemblyName System.Speech; ' \
+              f'(New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak("{full_text}")'
+    subprocess.run(["powershell", "-Command", command])
+    
+if __name__ == "__main__":
+    speak(["Primeira frase", "Segunda frase", "Terceira frase"])
