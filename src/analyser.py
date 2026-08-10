@@ -3,13 +3,7 @@ from capture import connect_physics, connect_graphics, read_physics, read_graphi
 import pandas as pd
 import os
 import numpy as np
-
-## a fazer:
-## load_lap()
-## align_by_position()
-## compute_deltas()
-## find_biggest_losses()
-
+from voice import speak
 
 def load_lap(filepath):
     df = pd.read_csv(filepath)
@@ -52,16 +46,26 @@ def find_biggest_losses(common_positions, delta, num_segments=20, top_n=3):
 
     losses_per_segment.sort(key=lambda x: x[1], reverse=True)
     return losses_per_segment[:top_n]
-    
+
+def generate_feedback_messages(losses):
+    messages = []
+    for position, time_lost in losses:
+        percent = position * 100
+        message = f"You lost {time_lost:.1f} seconds in the {percent:.0f} percent of the lap"
+        messages.append(message)
+    return messages
+
 if __name__ == "__main__":
     lap = load_lap("data/lap_5.csv")
     ghost = load_lap("data/lap_1.csv")
     
-    print("Lap position range:", lap["position"].min(), "-", lap["position"].max())
-    print("Ghost position range:", ghost["position"].min(), "-", ghost["position"].max())
     common_pos, lap_times, lap_speeds, ghost_times, ghost_speeds = align_by_position(lap, ghost)
     delta = compute_deltas(lap_times, ghost_times)
-    
     losses = find_biggest_losses(common_pos, delta)
-    for position, time_lost in losses:
-        print(f"Posição {position:.2f}: perdeste {time_lost:.3f}s neste troço")
+    
+    messages = generate_feedback_messages(losses)
+    messages = generate_feedback_messages(losses)
+    print(f"Número de mensagens: {len(messages)}")
+    for m in messages:
+        print(m)
+    speak(messages)
