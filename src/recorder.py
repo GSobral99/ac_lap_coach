@@ -11,13 +11,6 @@ from capture import connect_physics, connect_graphics, read_physics, read_graphi
 import pandas as pd
 import os
 
-# a fazer:
-# - start_recording()
-# - record_frame(physics, graphics)
-# - deteção de mudança de volta (completedLaps a aumentar)
-# - save_lap_to_csv(frames, lap_number)
-
-
 def record_frame(physics, graphics):
     frame = {
         "position": graphics.normalizedCarPosition,
