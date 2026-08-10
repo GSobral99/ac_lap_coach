@@ -13,19 +13,24 @@ import numpy as np
 
 def load_lap(filepath):
     df = pd.read_csv(filepath)
-    df = df.sort_values("position").reset_index(drop=True)
-    return df
+    
+    drops = df[df["position"].diff() < -0.5].index
+    if len(drops) > 0:
+        df = df.iloc[:drops[0]]
+    return df.reset_index(drop=True)
 
 def align_by_position(lap_df, ghost_df, num_points=1000):
-    #cp = common positions
     cp = np.linspace(0, 1, num_points)
-    
-    lap_times = np.interp(cp, lap_df["position"], lap_df["timestamp"])
+
+    lap_elapsed = lap_df["timestamp"] - lap_df["timestamp"].iloc[0]
+    ghost_elapsed = ghost_df["timestamp"] - ghost_df["timestamp"].iloc[0]
+
+    lap_times = np.interp(cp, lap_df["position"], lap_elapsed)
     lap_speeds = np.interp(cp, lap_df["position"], lap_df["speed"])
-    
-    ghost_times = np.interp(cp, ghost_df["position"], ghost_df["timestamp"])
+
+    ghost_times = np.interp(cp, ghost_df["position"], ghost_elapsed)
     ghost_speeds = np.interp(cp, ghost_df["position"], ghost_df["speed"])
-    
+
     return cp, lap_times, lap_speeds, ghost_times, ghost_speeds
 
 def compute_deltas(lap_times, ghost_times):
@@ -48,6 +53,9 @@ def find_biggest_losses(common_positions, delta, num_segments=20, top_n=3):
 if __name__ == "__main__":
     lap = load_lap("data/lap_5.csv")
     ghost = load_lap("data/lap_1.csv")
+    
+    print("Lap position range:", lap["position"].min(), "-", lap["position"].max())
+    print("Ghost position range:", ghost["position"].min(), "-", ghost["position"].max())
     
     common_pos, lap_times, lap_speeds, ghost_times, ghost_speeds = align_by_position(lap, ghost)
     delta = compute_deltas(lap_times, ghost_times)
