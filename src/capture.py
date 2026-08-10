@@ -1,4 +1,14 @@
 """
+(ENGLISH)
+Reads telemetry data in real time from Assetto Corsa
+from shared memory (Local\\acpmf_physics e Local\\acpmf_graphics).
+
+Requirements: Assetto Corsa needs to be running
+(in a session, not on at he menu) for the data to show up.
+"""
+
+"""
+(PORTUGUÊS)
 Lê dados de telemetria em tempo real do Assetto Corsa (classico)
 via shared memory (Local\\acpmf_physics e Local\\acpmf_graphics).
 
@@ -72,13 +82,13 @@ class SPageFileGraphics(ctypes.Structure):
 
 
 def connect_physics():
-    """Abre a shared memory de fisica do AC."""
+    """Opens the AC physics shared memory."""
     shm = mmap.mmap(-1, ctypes.sizeof(SPageFilePhysics), "Local\\acpmf_physics")
     return shm
 
 
 def read_physics(shm):
-    """Le a struct atual da shared memory de fisica."""
+    """Reads current struct of the physics shared memory."""
     shm.seek(0)
     data = shm.read(ctypes.sizeof(SPageFilePhysics))
     physics = SPageFilePhysics.from_buffer_copy(data)
@@ -86,13 +96,13 @@ def read_physics(shm):
 
 
 def connect_graphics():
-    """Abre a shared memory de graphics do AC (posicao na pista, voltas, etc)."""
+    """Opens the shared memory of graphics of AC (position in the track, laps, etc)."""
     shm = mmap.mmap(-1, ctypes.sizeof(SPageFileGraphics), "Local\\acpmf_graphics")
     return shm
 
 
 def read_graphics(shm):
-    """Le a struct atual da shared memory de graphics."""
+    """Reads current struct of graphics shared memory."""
     shm.seek(0)
     data = shm.read(ctypes.sizeof(SPageFileGraphics))
     graphics = SPageFileGraphics.from_buffer_copy(data)
@@ -100,18 +110,18 @@ def read_graphics(shm):
 
 
 def main():
-    print("A tentar ligar a shared memory do Assetto Corsa...")
-    print("(Certifica-te que o AC esta aberto E numa pista, nao so no menu)\n")
+    print("Connecting to Assetto Corsa's shared memory ...")
+    print("(Make sure AC is running And on a track, not the menu)\n")
 
     try:
         shm_physics = connect_physics()
         shm_graphics = connect_graphics()
     except Exception as e:
-        print(f"Erro ao abrir shared memory: {e}")
-        print("Verifica se o Assetto Corsa esta a correr.")
+        print(f"Error opening shared memory: {e}")
+        print("Verify that Assetto Corsa is running.")
         return
 
-    print("Ligado! A ler dados (Ctrl+C para parar)...\n")
+    print("Connected! Reading data (Ctrl+C to stop)...\n")
 
     try:
         while True:
@@ -128,7 +138,7 @@ def main():
             )
             time.sleep(0.1)
     except KeyboardInterrupt:
-        print("\nParado pelo utilizador.")
+        print("\nStopped by the user.")
     finally:
         shm_physics.close()
         shm_graphics.close()

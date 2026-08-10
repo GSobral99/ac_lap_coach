@@ -1,7 +1,5 @@
-import time
 from capture import connect_physics, connect_graphics, read_physics, read_graphics
 import pandas as pd
-import os
 import numpy as np
 from voice import speak
 
@@ -64,8 +62,4 @@ if __name__ == "__main__":
     losses = find_biggest_losses(common_pos, delta)
     
     messages = generate_feedback_messages(losses)
-    messages = generate_feedback_messages(losses)
-    print(f"Número de mensagens: {len(messages)}")
-    for m in messages:
-        print(m)
     speak(messages)

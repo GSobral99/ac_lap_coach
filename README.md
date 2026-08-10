@@ -2,7 +2,7 @@
 
 A telemetry-based lap coach for Assetto Corsa Classic. It reads live car data straight from the game's shared memory, records completed laps, compares your current lap with personal best (so called "ghost" lap), and speaks out where you lost time.
 
-Built as a portfolio project to demonstrate real-time data capture, signal processing (interpolation-based lap alignment), and systems-level debugging.
+Built as a portfolio project to demonstrate real-time data capture, signal processing (interpolation-based lap alignment), and systems-level debugging
 
 ## What it does
 
@@ -73,7 +73,7 @@ pip install -r requirements.txt
 - [x] Fastest lap detection
 - [x] Position-aligned lap comparison
 - [x] Spoken feedback
-- [ ] Add and Update code comments to english
+- [x] Add and Update code comments to english
 - [ ] Live integration (`main.py`) — record, compare, and speak automatically without manual steps between phases
 - [ ] Tyre wear / degradation feedback
 - [ ] Post-session dashboard (Streamlit)

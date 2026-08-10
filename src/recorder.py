@@ -1,4 +1,14 @@
 """
+(ENGLISH)
+Records completed laps from Assetto Corsa in CSV files,
+for then be analysed (ghost lap, delta, travagem, etc).
+
+Uses the functions from capture.py to connect a read the shared memory
+(physics + graphics); this file only records.
+"""
+
+"""
+(PORTUGUÊS)
 Grava voltas completas do Assetto Corsa em ficheiros CSV,
 para depois serem comparadas (ghost lap, delta, travagem, etc).
 
@@ -48,18 +58,18 @@ def find_best_lap(data_folder="data"):
 
 
 def main():
-    print("A tentar ligar a shared memory do Assetto Corsa...")
-    print("(Certifica-te que o AC esta aberto E numa pista, nao so no menu)\n")
+    print("Connecting to Assetto Corsa's shared memory ...")
+    print("(Make sure AC is running And on a track, not the menu)\n")
 
     try:
         shm_physics = connect_physics()
         shm_graphics = connect_graphics()
     except Exception as e:
-        print(f"Erro ao abrir shared memory: {e}")
-        print("Verifica se o Assetto Corsa esta a correr.")
+        print(f"Error opening shared memory: {e}")
+        print("Verify that Assetto Corsa is running.")
         return
 
-    print("Ligado! A ler dados (Ctrl+C para parar)...\n")
+    print("Connected! Reading data (Ctrl+C to stop)...\n")
 
     try:
         last_laps = 0
@@ -81,7 +91,7 @@ def main():
             )
             time.sleep(0.1)
     except KeyboardInterrupt:
-        print("\nParado pelo utilizador.")
+        print("\nStopped by the user.")
     finally:
         shm_physics.close()
         shm_graphics.close()
