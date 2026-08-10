@@ -20,7 +20,10 @@ def load_lap(filepath):
     return df.reset_index(drop=True)
 
 def align_by_position(lap_df, ghost_df, num_points=1000):
-    cp = np.linspace(0, 1, num_points)
+    start = max(lap_df["position"].min(), ghost_df["position"].min())
+    end = min(lap_df["position"].max(), ghost_df["position"].max())
+    
+    cp = np.linspace(start, end, num_points)
 
     lap_elapsed = lap_df["timestamp"] - lap_df["timestamp"].iloc[0]
     ghost_elapsed = ghost_df["timestamp"] - ghost_df["timestamp"].iloc[0]
@@ -56,7 +59,6 @@ if __name__ == "__main__":
     
     print("Lap position range:", lap["position"].min(), "-", lap["position"].max())
     print("Ghost position range:", ghost["position"].min(), "-", ghost["position"].max())
-    
     common_pos, lap_times, lap_speeds, ghost_times, ghost_speeds = align_by_position(lap, ghost)
     delta = compute_deltas(lap_times, ghost_times)
     
