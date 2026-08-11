@@ -39,7 +39,7 @@ def save_lap_to_csv(frames, lap_number):
     os.makedirs("data", exist_ok=True)
     df = pd.DataFrame(frames)
     df.to_csv(f"data/lap_{lap_number}.csv", index=False)
-    print(f"Volta {lap_number} guardada em data/lap_{lap_number}.csv ({len(frames)} frames)")
+    print(f"Lap {lap_number} saved in data/lap_{lap_number}.csv ({len(frames)} frames)")
 
 def find_best_lap(data_folder="data"):
     best_lap_file = None
