@@ -20,7 +20,6 @@ import mmap
 import ctypes
 import time
 
-
 class SPageFilePhysics(ctypes.Structure):
     _fields_ = [
         ("packetId", ctypes.c_int),
@@ -54,7 +53,6 @@ class SPageFilePhysics(ctypes.Structure):
         ("abs", ctypes.c_float),
     ]
 
-
 class SPageFileGraphics(ctypes.Structure):
     _fields_ = [
         ("packetId", ctypes.c_int),
@@ -79,13 +77,26 @@ class SPageFileGraphics(ctypes.Structure):
         ("replayTimeMultiplier", ctypes.c_float),
         ("normalizedCarPosition", ctypes.c_float),
     ]
-
+    
+class SPageFileStatic(ctypes.Structure):
+    _fields_ = [
+        ("smVersion", ctypes.c_wchar * 15),
+        ("acVersion", ctypes.c_wchar * 15),
+        ("numberOfSessions", ctypes.c_int),
+        ("numCars", ctypes.c_int),
+        ("carModel", ctypes.c_wchar * 33),
+        ("track", ctypes.c_wchar * 33),
+        ("playerName", ctypes.c_wchar * 33),
+        ("playerSurname", ctypes.c_wchar * 33),
+        ("playerNick", ctypes.c_wchar * 33),
+        ("sectorCount", ctypes.c_int),
+        #can had more parameters if I need in the future
+    ]
 
 def connect_physics():
     """Opens the AC physics shared memory."""
     shm = mmap.mmap(-1, ctypes.sizeof(SPageFilePhysics), "Local\\acpmf_physics")
     return shm
-
 
 def read_physics(shm):
     """Reads current struct of the physics shared memory."""
@@ -94,12 +105,10 @@ def read_physics(shm):
     physics = SPageFilePhysics.from_buffer_copy(data)
     return physics
 
-
 def connect_graphics():
     """Opens the shared memory of graphics of AC (position in the track, laps, etc)."""
     shm = mmap.mmap(-1, ctypes.sizeof(SPageFileGraphics), "Local\\acpmf_graphics")
     return shm
-
 
 def read_graphics(shm):
     """Reads current struct of graphics shared memory."""
@@ -108,6 +117,15 @@ def read_graphics(shm):
     graphics = SPageFileGraphics.from_buffer_copy(data)
     return graphics
 
+def connect_static():
+    shm = mmap.mmap(-1, ctypes.sizeof(SPageFileStatic), "Local\\acpmf_static")
+    return shm
+
+def read_static(shm):
+    shm.seek(0)
+    data = shm.read(ctypes.sizeof(SPageFileStatic))
+    static = SPageFileStatic.from_buffer_copy(data)
+    return static
 
 def main():
     print("Connecting to Assetto Corsa's shared memory ...")
@@ -142,7 +160,6 @@ def main():
     finally:
         shm_physics.close()
         shm_graphics.close()
-
 
 if __name__ == "__main__":
     main()

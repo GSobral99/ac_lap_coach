@@ -3,15 +3,15 @@ import os
 import time
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
-from capture import connect_physics, connect_graphics, read_physics, read_graphics
-from recorder import start_recording, record_frame, save_lap_to_csv, find_best_lap
+from capture import connect_physics, connect_graphics, read_physics, read_graphics, connect_static, read_static
+from recorder import start_recording, record_frame, save_lap_to_csv, find_best_lap, create_session_folder
 from analyser import load_lap, align_by_position, compute_deltas, find_biggest_losses, generate_feedback_messages
 from voice import speak
 
-def process_completed_lap(lap_number):
+def process_completed_lap(lap_number, session_folder):
     """Compares completed lap with the ghost one, and gives voice feedback."""
-    best_file, best_duration = find_best_lap()
-    lap_file = f"data/lap_{lap_number}.csv"
+    best_file, best_duration = find_best_lap(session_folder)
+    lap_file = os.path.join(session_folder, f"lap_{lap_number}.csv")
 
     if os.path.normpath(best_file) == os.path.normpath(lap_file):
         speak(["New best lap!"])
@@ -34,6 +34,10 @@ def main():
     try:
         shm_physics = connect_physics()
         shm_graphics = connect_graphics()
+        shm_static = connect_static()
+        static_data = read_static(shm_static)
+        session_folder = create_session_folder(static_data.track)
+        shm_static.close()
     except Exception as e:
         print(f"Error opening shared memory: {e}")
         return
@@ -51,8 +55,9 @@ def main():
             frames.append(frame)
 
             if g.completedLaps > last_laps:
-                save_lap_to_csv(frames, g.completedLaps)
-                process_completed_lap(g.completedLaps)
+                lap_time_ms = g.iLastTime
+                save_lap_to_csv(frames, g.completedLaps, session_folder, lap_time_ms)
+                process_completed_lap(g.completedLaps, session_folder)
                 frames = start_recording()
                 last_laps = g.completedLaps
 

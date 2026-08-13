@@ -20,6 +20,7 @@ import time
 from capture import connect_physics, connect_graphics, read_physics, read_graphics
 import pandas as pd
 import os
+from datetime import datetime
 
 def record_frame(physics, graphics):
     frame = {
@@ -35,26 +36,38 @@ def record_frame(physics, graphics):
 def start_recording():
     return []
 
-def save_lap_to_csv(frames, lap_number):
-    os.makedirs("data", exist_ok=True)
-    df = pd.DataFrame(frames)
-    df.to_csv(f"data/lap_{lap_number}.csv", index=False)
-    print(f"Lap {lap_number} saved in data/lap_{lap_number}.csv ({len(frames)} frames)")
 
-def find_best_lap(data_folder="data"):
+def create_session_folder(track_name, base_folder="data"):
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    folder_name = f"{track_name}_{timestamp}"
+    session_path = os.path.join(base_folder, folder_name)
+    os.makedirs(session_path, exist_ok=True)
+    return session_path
+
+def save_lap_to_csv(frames, lap_number, session_folder, lap_time_ms):
+    os.makedirs(session_folder, exist_ok=True)
+    df = pd.DataFrame(frames)
+    df["lap_time_ms"] = lap_time_ms
+    filepath = os.path.join(session_folder, f"lap_{lap_number}.csv")
+    df.to_csv(filepath, index=False)
+    print(f"Volta {lap_number} guardada em {filepath} ({len(frames)} frames, {lap_time_ms/1000:.2f}s)")
+
+
+def find_best_lap(session_folder):
     best_lap_file = None
     best_duration = None
-    for filename in os.listdir(data_folder):
+
+    for filename in os.listdir(session_folder):
         if filename.endswith(".csv"):
-            filepath = os.path.join(data_folder, filename)
+            filepath = os.path.join(session_folder, filename)
             df = pd.read_csv(filepath)
-            duration = df["timestamp"].iloc[-1] - df["timestamp"].iloc[0]
-            
+            duration = df["lap_time_ms"].iloc[0] / 1000.0 
+
             if best_duration is None or duration < best_duration:
                 best_duration = duration
                 best_lap_file = filepath
-    return best_lap_file, best_duration
 
+    return best_lap_file, best_duration
 
 
 def main():

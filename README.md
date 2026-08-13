@@ -53,18 +53,23 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-## Usage (before implementation of main.py)
+## Usage
 
-1. Launch Assetto Corsa and get on track (Practice or Hotlap mode -- not just the menu).
-2. Run the recorder to capture laps:
-   ```bash
-   python src/recorder.py
-   ```
-3. Drive a few laps. Each completed lap is saved to `data/lap_<n>.csv`.
-4. Compare a lap against your best:
-   ```bash
-   python src/analyser.py
-   ```
+1. Launch Assetto Corsa and get on track.
+2. Run:
+```bash
+   python main.py
+```
+3. Drive. Each completed lap is recorded automatically. After your second lap onward, you'll hear spoken feedback comparing it to your best lap so far.
+
+### Running components individually
+
+For debugging or testing a single piece:
+```bash
+python src/capture.py    # print live telemetry
+python src/recorder.py   # record laps without live comparison
+python src/analyser.py   # compare two specific saved laps
+```
 
 ## Status
 
@@ -74,7 +79,7 @@ pip install -r requirements.txt
 - [x] Position-aligned lap comparison
 - [x] Spoken feedback
 - [x] Add and Update code comments to english
-- [ ] Live integration (`main.py`) — record, compare, and speak automatically without manual steps between phases
+- [x] Live integration (`main.py`) — record, compare, and speak automatically without manual steps between phases
 - [ ] Tyre wear / degradation feedback
 - [ ] Post-session dashboard (Streamlit)
 - [ ] Update and upgrade for better performance
