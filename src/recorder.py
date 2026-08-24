@@ -17,7 +17,8 @@ Usa as funções de capture.py para ligar e ler a shared memory
 """
 
 import time
-from capture import connect_physics, connect_graphics, read_physics, read_graphics
+from capture import connect_physics, connect_graphics, read_physics, read_graphics, connect_static, read_static
+
 import pandas as pd
 import os
 from datetime import datetime
@@ -50,7 +51,7 @@ def save_lap_to_csv(frames, lap_number, session_folder, lap_time_ms):
     df["lap_time_ms"] = lap_time_ms
     filepath = os.path.join(session_folder, f"lap_{lap_number}.csv")
     df.to_csv(filepath, index=False)
-    print(f"Volta {lap_number} guardada em {filepath} ({len(frames)} frames, {lap_time_ms/1000:.2f}s)")
+    print(f"Lap {lap_number} saved in {filepath} ({len(frames)} frames, {lap_time_ms/1000:.2f}s)")
 
 
 def find_best_lap(session_folder):
@@ -70,45 +71,42 @@ def find_best_lap(session_folder):
     return best_lap_file, best_duration
 
 
-def main():
+
+if __name__ == "__main__":
+    # Teste rápido isolado: liga, grava 1-2 voltas, e confirma que os CSVs saem bem
     print("Connecting to Assetto Corsa's shared memory ...")
-    print("(Make sure AC is running And on a track, not the menu)\n")
 
     try:
         shm_physics = connect_physics()
         shm_graphics = connect_graphics()
+        shm_static = connect_static()
+        static_data = read_static(shm_static)
+        session_folder = create_session_folder(static_data.track)
+        shm_static.close()
     except Exception as e:
         print(f"Error opening shared memory: {e}")
-        print("Verify that Assetto Corsa is running.")
-        return
+        exit()
 
-    print("Connected! Reading data (Ctrl+C to stop)...\n")
+    print(f"Connected! Recording to {session_folder} (Ctrl+C to stop)...\n")
 
     try:
         last_laps = 0
-        frames = start_recording() 
+        frames = start_recording()
         while True:
             p = read_physics(shm_physics)
             g = read_graphics(shm_graphics)
-            
+
             frame = record_frame(p, g)
             frames.append(frame)
+
             if g.completedLaps > last_laps:
-                save_lap_to_csv(frames, g.completedLaps)
+                save_lap_to_csv(frames, g.completedLaps, session_folder, g.iLastTime)
                 frames = start_recording()
                 last_laps = g.completedLaps
-            print(
-                f"Speed: {p.speedKmh:6.1f} km/h | "
-                f"Position: {g.normalizedCarPosition:.3f} | "
-                f"Laps: {g.completedLaps:2d}"
-            )
+
             time.sleep(0.1)
     except KeyboardInterrupt:
         print("\nStopped by the user.")
     finally:
         shm_physics.close()
         shm_graphics.close()
-
-
-if __name__ == "__main__":
-    main()

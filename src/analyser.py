@@ -26,6 +26,10 @@ def align_by_position(lap_df, ghost_df, num_points=1000):
     ghost_times = np.interp(cp, ghost_df["position"], ghost_elapsed)
     ghost_speeds = np.interp(cp, ghost_df["position"], ghost_df["speed"])
 
+    # NOVO: rebasear ambos para começarem em 0 na entrada da zona de sobreposição
+    lap_times = lap_times - lap_times[0]
+    ghost_times = ghost_times - ghost_times[0]
+
     return cp, lap_times, lap_speeds, ghost_times, ghost_speeds
 
 def compute_deltas(lap_times, ghost_times):
