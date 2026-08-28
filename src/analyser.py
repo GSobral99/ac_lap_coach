@@ -2,6 +2,7 @@ from capture import connect_physics, connect_graphics, read_physics, read_graphi
 import pandas as pd
 import numpy as np
 from voice import speak
+from tracks import get_corner
 
 def load_lap(filepath):
     df = pd.read_csv(filepath)
@@ -49,11 +50,21 @@ def find_biggest_losses(common_positions, delta, num_segments=20, top_n=3):
     losses_per_segment.sort(key=lambda x: x[1], reverse=True)
     return losses_per_segment[:top_n]
 
-def generate_feedback_messages(losses):
+def generate_feedback_messages(losses, track_name=None):
     messages = []
     for position, time_lost in losses:
-        percent = position * 100
-        message = f"You lost {time_lost:.1f} seconds in the {percent:.0f} percent of the lap"
+        corner, inside_corner = get_corner(track_name, position)
+
+        if corner is None:
+            # Track not in tracks.py, or position past the last mapped corner:
+            # fall back to the old percent-based description.
+            location = f"the {position * 100:.0f} percent of the lap"
+        elif inside_corner:
+            location = f"turn {corner}"
+        else:
+            location = f"before turn {corner}"
+
+        message = f"You lost {time_lost:.1f} seconds at {location}"
         messages.append(message)
     return messages
 
@@ -65,5 +76,5 @@ if __name__ == "__main__":
     delta = compute_deltas(lap_times, ghost_times)
     losses = find_biggest_losses(common_pos, delta)
     
-    messages = generate_feedback_messages(losses)
+    messages = generate_feedback_messages(losses, track_name="acf_portimao")
     speak(messages)

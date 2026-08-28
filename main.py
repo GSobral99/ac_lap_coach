@@ -9,7 +9,7 @@ from analyser import load_lap, align_by_position, compute_deltas, find_biggest_l
 from voice import speak
 
 
-def process_completed_lap(lap_number, session_folder):
+def process_completed_lap(lap_number, session_folder, track_name):
     """Compares completed lap with the ghost one, and gives voice feedback."""
     print(f"\n[DEBUG] --- Processing completed lap {lap_number} ---")
 
@@ -42,7 +42,7 @@ def process_completed_lap(lap_number, session_folder):
     losses = find_biggest_losses(common_pos, delta)
     print(f"[DEBUG] Biggest losses: {losses}")
 
-    messages = generate_feedback_messages(losses)
+    messages = generate_feedback_messages(losses, track_name=track_name)
     print(f"[DEBUG] Messages to speak: {messages}")
 
     speak(messages)
@@ -57,8 +57,9 @@ def main():
         shm_graphics = connect_graphics()
         shm_static = connect_static()
         static_data = read_static(shm_static)
-        print(f"[DEBUG] Track read from static block: '{static_data.track}'")
-        session_folder = create_session_folder(static_data.track)
+        track_name = static_data.track
+        print(f"[DEBUG] Track read from static block: '{track_name}'")
+        session_folder = create_session_folder(track_name)
         print(f"[DEBUG] Session folder created: {session_folder}")
         shm_static.close()
     except Exception as e:
@@ -83,7 +84,7 @@ def main():
                 print(f"[DEBUG] frames collected for this lap: {len(frames)}")
 
                 save_lap_to_csv(frames, g.completedLaps, session_folder, g.iLastTime)
-                process_completed_lap(g.completedLaps, session_folder)
+                process_completed_lap(g.completedLaps, session_folder, track_name)
 
                 frames = start_recording()
                 last_laps = g.completedLaps
