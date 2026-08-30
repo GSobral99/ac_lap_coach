@@ -124,7 +124,7 @@ This connects live and speaks "Turn N" the moment your position enters a corner'
 - [x] Add and update code comments to English
 - [x] Live integration (`main.py`) - record, compare, and speak automatically without manual steps between phases
 - [x] Automatic corner detection from track AI files, with live on-track verification tool
-- [ ] Tyre wear / degradation feedback
+- [x] Tyre wear / degradation feedback
 - [ ] Post-session dashboard (Streamlit)
 - [ ] Update and upgrade for better performance
 - [ ] Add extras

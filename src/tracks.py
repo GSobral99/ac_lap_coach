@@ -102,3 +102,16 @@ def get_corner(track_name, position):
         return next_corner[2], False
 
     return None, False
+
+def get_corner_range(track_name, corner_number):
+    """
+    Returns (start, end) for a given corner number on a track, or None
+    if the track/corner isn't in TRACKS.
+    """
+    corners = TRACKS.get(track_name)
+    if not corners:
+        return None
+    for start, end, number in corners:
+        if number == corner_number:
+            return start, end
+    return None

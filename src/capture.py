@@ -152,6 +152,7 @@ def main():
                 f"Gas: {p.gas:.2f} | "
                 f"Brake: {p.brake:.2f} | "
                 f"Position: {g.normalizedCarPosition:.3f} | "
+                f"Tyre wear (FL FR RL RR): [{p.tyreWear[0]:.2f}, {p.tyreWear[1]:.2f}, {p.tyreWear[2]:.2f}, {p.tyreWear[3]:.2f}] | "
                 f"Laps: {g.completedLaps:2d}"
             )
             time.sleep(0.1)

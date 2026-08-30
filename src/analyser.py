@@ -48,26 +48,101 @@ def find_biggest_losses(common_positions, delta, num_segments=20, top_n=3):
         losses_per_segment.append((common_positions[start], segment_delta_change))
 
     losses_per_segment.sort(key=lambda x: x[1], reverse=True)
-    return losses_per_segment[:top_n]
+    
+    real_losses = [l for l in losses_per_segment if l[1] > 0]
+    return real_losses[:top_n]
 
-def generate_feedback_messages(losses, track_name=None):
+from tracks import get_corner, get_corner_range
+
+def generate_feedback_messages(losses, common_positions=None, delta=None, track_name=None):
     messages = []
     for position, time_lost in losses:
         corner, inside_corner = get_corner(track_name, position)
 
         if corner is None:
-            # Track not in tracks.py, or position past the last mapped corner:
-            # fall back to the old percent-based description.
             location = f"the {position * 100:.0f} percent of the lap"
-        elif inside_corner:
-            location = f"turn {corner}"
-        else:
-            location = f"before turn {corner}"
+            message = f"You lost {time_lost:.1f} seconds at {location}"
 
-        message = f"You lost {time_lost:.1f} seconds at {location}"
+        elif inside_corner:
+            label = None
+            corner_range = get_corner_range(track_name, corner)
+            if corner_range and common_positions is not None and delta is not None:
+                label = classify_loss_within_corner(common_positions, delta, corner_range[0], corner_range[1])
+
+            if label:
+                message = f"You lost {time_lost:.1f} seconds {label} turn {corner}"
+            else:
+                message = f"You lost {time_lost:.1f} seconds at turn {corner}"
+
+        else:
+            message = f"You lost {time_lost:.1f} seconds before turn {corner}"
+
         messages.append(message)
     return messages
 
+def compute_tyre_wear_rate(lap_df):
+    """
+    Devolve o desgaste total (em pontos) de cada roda ao longo da volta,
+    do início ao fim.
+    """
+    wheels = ["tyre_wear_fl", "tyre_wear_fr", "tyre_wear_rl", "tyre_wear_rr"]
+    wear_rates = {}
+    
+    for wheel in wheels:
+        start_wear = lap_df[wheel].iloc[0]
+        end_wear = lap_df[wheel].iloc[-1]
+        wear_rates[wheel] = start_wear - end_wear  # positivo = desgastou
+    
+    return wear_rates
+
+def compare_tyre_wear(lap_df, ghost_df, threshold_ratio=1.15):
+    """
+    Compara a taxa de desgaste da volta atual com a da ghost.
+    Devolve mensagens de aviso se alguma roda estiver a gastar
+    significativamente mais rápido (threshold_ratio = quanto mais, ex: 1.3 = 30% mais).
+    """
+    lap_wear = compute_tyre_wear_rate(lap_df)
+    ghost_wear = compute_tyre_wear_rate(ghost_df)
+    
+    wheel_labels = {
+        "tyre_wear_fl": "front left",
+        "tyre_wear_fr": "front right",
+        "tyre_wear_rl": "rear left",
+        "tyre_wear_rr": "rear right",
+    }
+    
+    messages = []
+    for wheel, label in wheel_labels.items():
+        if ghost_wear[wheel] > 0 and lap_wear[wheel] > ghost_wear[wheel] * threshold_ratio:
+            messages.append(f"You're wearing your {label} tyre faster than usual")
+    
+    return messages
+
+
+def classify_loss_within_corner(common_positions, delta, corner_start, corner_end):
+    """
+    Given a corner's (start, end) range, determines whether most time
+    was lost in the first half (entry) or second half (exit).
+    Returns "entering", "exiting", or None if there isn't enough data
+    inside the range to tell.
+    """
+    mid = (corner_start + corner_end) / 2
+
+    entry_mask = (common_positions >= corner_start) & (common_positions < mid)
+    exit_mask = (common_positions >= mid) & (common_positions < corner_end)
+
+    if not entry_mask.any() or not exit_mask.any():
+        return None
+
+    entry_delta_change = delta[entry_mask][-1] - delta[entry_mask][0]
+    exit_delta_change = delta[exit_mask][-1] - delta[exit_mask][0]
+
+    if entry_delta_change > exit_delta_change:
+        return "entering"
+    else:
+        return "exiting"
+    
+    
 if __name__ == "__main__":
     lap = load_lap("data/lap_5.csv")
     ghost = load_lap("data/lap_1.csv")

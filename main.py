@@ -5,47 +5,34 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
 from capture import connect_physics, connect_graphics, read_physics, read_graphics, connect_static, read_static
 from recorder import start_recording, record_frame, save_lap_to_csv, find_best_lap, create_session_folder
-from analyser import load_lap, align_by_position, compute_deltas, find_biggest_losses, generate_feedback_messages
 from voice import speak
+from analyser import load_lap, align_by_position, compute_deltas, find_biggest_losses, generate_feedback_messages, compute_tyre_wear_rate, compare_tyre_wear
 
 
 def process_completed_lap(lap_number, session_folder, track_name):
-    """Compares completed lap with the ghost one, and gives voice feedback."""
     print(f"\n[DEBUG] --- Processing completed lap {lap_number} ---")
 
     best_file, best_duration = find_best_lap(session_folder)
     lap_file = os.path.join(session_folder, f"lap_{lap_number}.csv")
 
-    print(f"[DEBUG] session_folder = {session_folder}")
-    print(f"[DEBUG] lap_file       = {lap_file}")
-    print(f"[DEBUG] best_file      = {best_file}")
-    print(f"[DEBUG] best_duration  = {best_duration}")
-    print(f"[DEBUG] normpath match = {os.path.normpath(best_file) == os.path.normpath(lap_file)}")
-
     if os.path.normpath(best_file) == os.path.normpath(lap_file):
-        print("[DEBUG] This lap IS the new best lap. Speaking 'New best lap!'")
         speak(["New best lap!"])
         return
 
-    print(f"[DEBUG] Loading lap file: {lap_file}")
     lap = load_lap(lap_file)
-    print(f"[DEBUG] Lap loaded: {len(lap)} rows, position range {lap['position'].min():.4f} - {lap['position'].max():.4f}")
-
-    print(f"[DEBUG] Loading ghost file: {best_file}")
     ghost = load_lap(best_file)
-    print(f"[DEBUG] Ghost loaded: {len(ghost)} rows, position range {ghost['position'].min():.4f} - {ghost['position'].max():.4f}")
-
+    
     common_pos, lap_times, lap_speeds, ghost_times, ghost_speeds = align_by_position(lap, ghost)
     delta = compute_deltas(lap_times, ghost_times)
-    print(f"[DEBUG] delta range: min={delta.min():.3f}s max={delta.max():.3f}s final={delta[-1]:.3f}s")
-
     losses = find_biggest_losses(common_pos, delta)
-    print(f"[DEBUG] Biggest losses: {losses}")
+    
+    time_messages = generate_feedback_messages(losses, common_positions=common_pos, delta=delta, track_name=track_name)
+    tyre_messages = compare_tyre_wear(lap, ghost)
 
-    messages = generate_feedback_messages(losses, track_name=track_name)
-    print(f"[DEBUG] Messages to speak: {messages}")
+    all_messages = time_messages + tyre_messages
+    print(f"[DEBUG] Messages to speak: {all_messages}")
 
-    speak(messages)
+    speak(all_messages)
     print("[DEBUG] --- Done processing lap ---\n")
 
 

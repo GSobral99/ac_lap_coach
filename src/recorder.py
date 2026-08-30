@@ -31,6 +31,10 @@ def record_frame(physics, graphics):
         "brake": physics.brake,
         "gear": physics.gear,
         "timestamp": time.time(),
+        "tyre_wear_fl": physics.tyreWear[0],
+        "tyre_wear_fr": physics.tyreWear[1],
+        "tyre_wear_rl": physics.tyreWear[2],
+        "tyre_wear_rr": physics.tyreWear[3],
     }
     return frame
 
