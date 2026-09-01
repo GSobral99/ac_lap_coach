@@ -58,7 +58,7 @@ def save_lap_to_csv(frames, lap_number, session_folder, lap_time_ms):
     print(f"Lap {lap_number} saved in {filepath} ({len(frames)} frames, {lap_time_ms/1000:.2f}s)")
 
 
-def find_best_lap(session_folder):
+def find_best_lap(session_folder, min_coverage=0.85):
     best_lap_file = None
     best_duration = None
 
@@ -66,14 +66,18 @@ def find_best_lap(session_folder):
         if filename.endswith(".csv"):
             filepath = os.path.join(session_folder, filename)
             df = pd.read_csv(filepath)
-            duration = df["lap_time_ms"].iloc[0] / 1000.0 
+            
+            coverage = df["position"].max() - df["position"].min()
+            if coverage < min_coverage:
+                continue
+
+            duration = df["lap_time_ms"].iloc[0] / 1000.0
 
             if best_duration is None or duration < best_duration:
                 best_duration = duration
                 best_lap_file = filepath
 
     return best_lap_file, best_duration
-
 
 
 if __name__ == "__main__":

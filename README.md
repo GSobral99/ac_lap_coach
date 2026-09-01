@@ -6,20 +6,21 @@ Built as a portfolio project to demonstrate real-time data capture, signal proce
 
 ## What it does
 
-1. **Captures** live telemetry (speed, throttle, brake, gear, track position) from Assetto Corsa via its shared memory API.
+1. **Captures** live telemetry (speed, throttle, brake, gear, track position, tyre wear/temperature) from Assetto Corsa via its shared memory API.
 2. **Records** each completed lap to a CSV file.
-3. **Identifies** your fastest recorded lap as a reference ("ghost").
+3. **Identifies** your fastest recorded lap as a reference ("ghost") - only among laps that actually cover most of the track (see below).
 4. **Compares** any lap against the ghost by aligning both on track position (not time), using linear interpolation to handle laps with different frame counts and timestamps.
-5. **Finds** the track segments where the most time was lost.
-6. **Speaks** the feedback out loud - either as a percentage of the lap, or as a corner number for tracks that have been calibrated (e.g. "You lost 2.8 seconds at Turn 5").
+5. **Finds** the track segments where the most time was lost, labelled by corner number where the track has been calibrated (e.g. "entering Turn 4"), or by lap percentage otherwise.
+6. **Compares tyre wear** per wheel against the ghost lap, and flags wheels wearing noticeably faster than usual.
+7. **Speaks** all of this feedback out loud after each lap.
 
 ## Architecture
 
 ```
 src/
 ├── capture.py    # Connects to and reads AC shared memory (physics + graphics + static)
-├── recorder.py   # Records completed laps to CSV, finds the fastest lap
-├── analyser.py   # Aligns laps by position, computes time deltas, finds losses
+├── recorder.py   # Records completed laps to CSV, finds the fastest valid lap
+├── analyser.py   # Aligns laps by position, computes time/tyre deltas, finds losses
 └── voice.py      # Text-to-speech feedback
 tracks.py                  # Per-track corner number lookup by normalized position
 parse_ai_spline.py         # Detects corner apexes from a track's fast_lane.ai file
@@ -38,11 +39,16 @@ Each module has a single responsibility: `capture.py` only knows how to read sha
 
 **Handling messy real-world data.** A few edge cases had to be handled explicitly:
 - Laps can start partway through a session, so the two laps being compared don't always cover the same range of track position - the analysis is restricted to the overlapping range only, and both laps' elapsed time is rebased to zero at the start of that overlap so the comparison stays fair regardless of where each recording began.
+- **A lap can't become the ghost unless it covers most of the track.** In Hotlap mode especially, the very first lap recorded after launching the tool is really just the warm-up stretch from wherever the car started to the start/finish line - `completedLaps` only ticks over once you actually cross the line, but recording starts as soon as the script connects. That "lap" might only cover 10-15% of the track, and comparing against it produces meaningless deltas concentrated in a tiny sliver of the lap. `find_best_lap()` now requires a minimum position coverage (`position.max() - position.min() >= 0.85` by default) for a lap to even be considered as a ghost candidate, regardless of how fast its recorded time looks. This isn't Hotlap-specific - the same guard also protects against any lap whose recording started late for other reasons (off-track resets, restarting the script mid-session, etc.), since the check is about actual data coverage, not which lap number it happens to be.
 - The position value wraps from ~1.0 back to 0.0 at the start/finish line, and a couple of frames from the *next* lap can bleed into the end of a recording - these are trimmed before interpolation.
 - Time deltas are computed from *elapsed time since the start of each lap*, not absolute system time - otherwise two laps recorded minutes apart would show meaningless multi-minute "deltas".
 - Lap duration used to pick the fastest lap comes straight from the game's own `iLastTime` field, not from recomputing it off recorded timestamps - a lap whose recording started mid-track would otherwise look artificially short.
 
 **Detecting corners automatically from the track file.** Rather than hand-guessing where each corner is, `parse_ai_spline.py` parses the track's `fast_lane.ai` file (the AI racing line Assetto Corsa ships with every track) and reads the corner radius the game itself computed at every point along the line. It treats curvature (1/radius) as a signal and finds its local peaks with `scipy.signal.find_peaks` - each peak is a corner apex. This gives one entry per real corner regardless of how tight or wide it is, without depending on any one driver's braking habits.
+
+**Entry vs. exit within a corner.** For a lap's biggest losses that fall inside a calibrated corner, the feedback also says whether the time was lost on the way in or the way out (e.g. "lost 1.1 seconds exiting Turn 4"), by comparing how much the time delta grew in the first half of the corner's position range versus the second half.
+
+**Tyre wear feedback.** Each wheel's wear rate (start-of-lap wear minus end-of-lap wear) is compared against the ghost lap's wear rate; a wheel wearing noticeably faster than in the ghost lap (by a configurable ratio) gets flagged by name (e.g. "you're wearing your front left tyre faster than usual"). Note: this was tuned and tested with the session's tyre wear rate multiplier set to 3x for faster iteration - the comparison ratio may need recalibrating for realistic (1x) wear rates, where lap-to-lap variation is smaller.
 
 **Text-to-speech on Windows.** `pyttsx3` has a known issue on Windows where only the first of several sequential `say()` calls is actually spoken. Rather than fight it, feedback is spoken via a direct call to the Windows SAPI synthesizer through PowerShell (`System.Speech.Synthesis.SpeechSynthesizer`), which is more reliable in this case, where I was having some problems with `pyttsx3`.
 
@@ -67,7 +73,7 @@ pip install -r requirements.txt
 ```bash
    python main.py
 ```
-3. Drive. Each completed lap is recorded automatically. After your second lap onward, you'll hear spoken feedback comparing it to your best lap so far.
+3. Drive. Each completed lap is recorded automatically. Once there's a valid ghost lap (see the coverage requirement above - this usually means from your second or third lap onward), you'll hear spoken feedback comparing your lap to it.
 
 ### Running components individually
 
@@ -104,6 +110,8 @@ This prints a ready-to-paste list of `(position, corner_number)` apexes.
 
 If two corners are very close together (a chicane, or a fast technical sequence), a fixed ±0.02 margin can make their ranges overlap, which makes the closer-numbered one always win. If that happens, narrow the margins for just those corners, or treat the sequence as a single named zone rather than separate turns.
 
+Known limitation: corner ranges don't wrap around the start/finish line, so positions just after the last mapped corner (e.g. the final 5-10% of the lap, after the last turn but before crossing the line) fall back to percentage-based feedback instead of naming the upcoming Turn 1.
+
 **3. Test it on track before trusting it.**
 
 Corner detection is based on track curvature, not on how you actually drive - and the apex-to-range conversion is a rough approximation, not something the game confirms. **Always verify a new track's calibration by actually driving it** before relying on the spoken feedback:
@@ -118,16 +126,18 @@ This connects live and speaks "Turn N" the moment your position enters a corner'
 
 - [x] Shared memory capture (physics + graphics + static)
 - [x] Lap recording to CSV
-- [x] Fastest lap detection (using the game's own lap time, not recomputed)
+- [x] Fastest *valid* lap detection (uses the game's own lap time, and requires minimum track coverage)
 - [x] Position-aligned lap comparison
 - [x] Spoken feedback
 - [x] Add and update code comments to English
 - [x] Live integration (`main.py`) - record, compare, and speak automatically without manual steps between phases
 - [x] Automatic corner detection from track AI files, with live on-track verification tool
-- [x] Tyre wear / degradation feedback
-- [ ] Post-session dashboard (Streamlit)
-- [ ] Update and upgrade for better performance
-- [ ] Add extras
+- [x] Entry/exit classification within a corner
+- [x] Tyre wear feedback (per-wheel, relative to ghost lap)
+- [ ] Live phone dashboard (Streamlit, read-only view of live telemetry + last lap summary over local network)
+- [ ] Post-session dashboard (delta graph, track map coloured by time gained/lost)
+- [ ] Recalibrate tyre wear thresholds against realistic (1x) wear rate
+- [ ] Corner ranges that wrap around the start/finish line
 
 ## Notes
 
