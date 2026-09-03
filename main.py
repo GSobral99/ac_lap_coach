@@ -23,8 +23,10 @@ def write_live_state(p, g, filepath="data/live_state.json"):
         "tyre_temp_rl": p.tyreCoreTemperature[2],
         "tyre_temp_rr": p.tyreCoreTemperature[3],
     }
+    tmp_path = filepath + ".tmp"
     with open(filepath, "w") as f:
         json.dump(state, f)
+    os.replace(tmp_path, filepath)
 
 def write_lap_summary(lap_number, lap_time_ms, messages, filepath="data/last_lap_summary.json"):
     summary = {

@@ -58,6 +58,15 @@ Each module has a single responsibility: `capture.py` only knows how to read sha
 - Python 3.12+
 - Windows (for the SAPI-based voice feedback)
 
+**Known setup requirement: exclude the project folder from Windows Defender.**
+`main.py` writes `data/live_state.json` several times per second while
+driving (for the phone dashboard). Windows Defender's real-time
+scanning intercepting each write can cause noticeable CPU spikes and
+stuttering in the game itself. Add the project folder to Defender's
+exclusions (Windows Security → Virus & threat protection → Manage
+settings → Add or remove exclusions) before running a live session.
+If you have a better CPU it might not be needed to make this change.
+
 ## Setup
 
 ```bash
@@ -134,7 +143,7 @@ This connects live and speaks "Turn N" the moment your position enters a corner'
 - [x] Automatic corner detection from track AI files, with live on-track verification tool
 - [x] Entry/exit classification within a corner
 - [x] Tyre wear feedback (per-wheel, relative to ghost lap)
-- [ ] Live phone dashboard (Streamlit, read-only view of live telemetry + last lap summary over local network)
+- [x] Live phone dashboard (Streamlit, read-only view of live telemetry + last lap summary over local network)
 - [ ] Post-session dashboard (delta graph, track map coloured by time gained/lost)
 - [ ] Recalibrate tyre wear thresholds against realistic (1x) wear rate
 - [ ] Corner ranges that wrap around the start/finish line
