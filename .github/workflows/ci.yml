@@ -8,7 +8,7 @@ jobs:
   test:
     # Only analyser.py, recorder.py's non-live functions, tracks.py and
     # parse_ai_spline.py are tested here
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@v4
