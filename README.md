@@ -131,6 +131,49 @@ python test_corner_calling.py
 
 This connects live and speaks "Turn N" the moment your position enters a corner's range, without recording or comparing laps - just drive a lap and listen for whether the callout lines up with when you actually turn in. If a corner is announced early, late, not at all, or the wrong number entirely, that corner's range needs adjusting in `tracks.py`. This has already caught real issues during development (overlapping ranges in a tight sequence of corners) - don't skip this step for a track you haven't verified yet.
 
+## Testing
+
+The pure data-processing parts of the project - position alignment, delta
+calculation, corner detection, tyre wear comparison, lap selection - are
+covered by a real pytest suite (no placeholder/skipped tests). `capture.py`'s
+shared memory functions aren't unit tested directly, since they depend on
+Windows and the game actually running; everything downstream of them (which
+is where the actual logic lives) is tested against synthetic-but-realistic
+lap data instead.
+
+```
+tests/
+├── conftest.py              # shared fixtures: synthetic lap DataFrames, a
+│                             # fake corner map, a real minimal .ai file on disk
+├── test_analyser.py         # position alignment, deltas, loss detection, tyre wear
+├── test_load_lap.py         # trimming frames that leak from the next lap
+├── test_tracks.py           # corner lookup by position
+├── test_parse_ai_spline.py  # binary .ai parsing, corner apex detection
+└── test_recorder.py         # frame recording, session folders, ghost lap selection
+```
+
+Run locally with:
+
+```bash
+pip install pytest
+pytest tests/ -v
+```
+
+Some of these tests exist because of bugs found during the on-game
+testing and development to this point - for example, `test_ignores_laps_with_insufficient_track_coverage`
+encodes the Hotlap warm-up-lap bug described above: a lap that only covers
+a small slice of the track must never be picked as the ghost, no matter
+how fast its recorded time looks.
+
+## CI
+
+Every push and pull request runs the test suite via GitHub Actions
+(`.github/workflows/ci.yml`) on Ubuntu with Python 3.12. It only runs
+`pytest tests/` - no game, no Windows, no shared memory involved, since
+none of the tested modules touch `capture.py`'s `connect_*()` functions.
+
+![CI](https://github.com/GSobral99/ac_lap_coach/actions/workflows/ci.yml/badge.svg)
+
 ## Status
 
 - [x] Shared memory capture (physics + graphics + static)
