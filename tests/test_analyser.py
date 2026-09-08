@@ -6,6 +6,7 @@ against synthetic-but-realistic lap DataFrames (see conftest.py).
 """
 import numpy as np
 import pandas as pd
+import pytest
 
 from analyser import (
     align_by_position,
