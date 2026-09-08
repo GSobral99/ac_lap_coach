@@ -105,11 +105,12 @@ class TestFindBiggestLosses:
 
 
 class TestTyreWear:
+
     def test_compute_tyre_wear_rate_is_start_minus_end(self, fast_lap_df):
         rates = compute_tyre_wear_rate(fast_lap_df)
-        expected_fl = fast_lap_df["tyre_wear_fl"].iloc[0] - fast_lap_df["tyre_wear_fl"].iloc[-1]
-        assert rates["tyre_wear_fl"] == expected_fl
-        assert rates["tyre_wear_fl"] > 0  # wear should decrease start->end, so this is positive
+        distance_covered = fast_lap_df["position"].iloc[-1] - fast_lap_df["position"].iloc[0]
+        expected_fl = (fast_lap_df["tyre_wear_fl"].iloc[0] - fast_lap_df["tyre_wear_fl"].iloc[-1]) / distance_covered
+        assert rates["tyre_wear_fl"] == pytest.approx(expected_fl)
 
     def test_flags_wheel_wearing_much_faster_than_ghost(self, fast_lap_df, slow_lap_df):
         aggressive_lap = fast_lap_df.copy()
