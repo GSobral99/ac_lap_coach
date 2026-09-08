@@ -81,26 +81,16 @@ def generate_feedback_messages(losses, common_positions=None, delta=None, track_
     return messages
 
 def compute_tyre_wear_rate(lap_df):
-    """
-    Devolve o desgaste total (em pontos) de cada roda ao longo da volta,
-    do início ao fim.
-    """
     wheels = ["tyre_wear_fl", "tyre_wear_fr", "tyre_wear_rl", "tyre_wear_rr"]
+    coverage = lap_df["position"].max() - lap_df["position"].min()
     wear_rates = {}
-    
     for wheel in wheels:
         start_wear = lap_df[wheel].iloc[0]
         end_wear = lap_df[wheel].iloc[-1]
-        wear_rates[wheel] = start_wear - end_wear  # positivo = desgastou
-    
+        wear_rates[wheel] = (start_wear - end_wear) / coverage
     return wear_rates
 
 def compare_tyre_wear(lap_df, ghost_df, threshold_ratio=1.15):
-    """
-    Compara a taxa de desgaste da volta atual com a da ghost.
-    Devolve mensagens de aviso se alguma roda estiver a gastar
-    significativamente mais rápido (threshold_ratio = quanto mais, ex: 1.3 = 30% mais).
-    """
     lap_wear = compute_tyre_wear_rate(lap_df)
     ghost_wear = compute_tyre_wear_rate(ghost_df)
     
@@ -120,12 +110,6 @@ def compare_tyre_wear(lap_df, ghost_df, threshold_ratio=1.15):
 
 
 def classify_loss_within_corner(common_positions, delta, corner_start, corner_end):
-    """
-    Given a corner's (start, end) range, determines whether most time
-    was lost in the first half (entry) or second half (exit).
-    Returns "entering", "exiting", or None if there isn't enough data
-    inside the range to tell.
-    """
     mid = (corner_start + corner_end) / 2
 
     entry_mask = (common_positions >= corner_start) & (common_positions < mid)

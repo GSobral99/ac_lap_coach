@@ -18,6 +18,7 @@ Usa as funções de capture.py para ligar e ler a shared memory
 
 import time
 from capture import connect_physics, connect_graphics, read_physics, read_graphics, connect_static, read_static
+from analyser import load_lap
 
 import pandas as pd
 import os
@@ -65,8 +66,8 @@ def find_best_lap(session_folder, min_coverage=0.85):
     for filename in os.listdir(session_folder):
         if filename.endswith(".csv"):
             filepath = os.path.join(session_folder, filename)
-            df = pd.read_csv(filepath)
-            
+            df = load_lap(filepath)
+
             coverage = df["position"].max() - df["position"].min()
             if coverage < min_coverage:
                 continue
