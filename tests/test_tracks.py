@@ -31,9 +31,11 @@ class TestGetCorner:
         assert number == 2
         assert inside is False
 
-    def test_position_past_the_last_corner_returns_none(self):
+    def test_position_past_the_last_corner_wraps_to_the_first_corner(self):
+        """After the last mapped corner, the next corner is Turn 1 again,
+        on the other side of the start/finish line - not None"""
         number, inside = tracks.get_corner("fake_track", 0.95)
-        assert number is None
+        assert number == 1
         assert inside is False
 
     def test_unknown_track_returns_none(self):
