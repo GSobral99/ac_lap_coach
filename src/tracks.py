@@ -101,6 +101,10 @@ def get_corner(track_name, position):
         next_corner = min(upcoming, key=lambda c: c[0])
         return next_corner[2], False
 
+    if corners:
+        first_corner = min(corners, key=lambda c: c[0])
+        return first_corner[2], False
+
     return None, False
 
 def get_corner_range(track_name, corner_number):
