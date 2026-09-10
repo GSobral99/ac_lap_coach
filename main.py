@@ -9,6 +9,18 @@ from recorder import start_recording, record_frame, save_lap_to_csv, find_best_l
 from voice import speak
 from analyser import load_lap, align_by_position, compute_deltas, find_biggest_losses, generate_feedback_messages, compute_tyre_wear_rate, compare_tyre_wear
 
+# Set to True for diagnostics (ghost selection, position ranges,
+# raw deltas/wear rates, lap boundary details). Leave False for normal
+# use - the essential lap-by-lap status (connection, lap saved, feedback
+# spoken) is always printed regardless of this flag.
+DEBUG = False
+
+
+def debug_print(*args, **kwargs):
+    if DEBUG:
+        print(*args, **kwargs)
+
+
 def write_live_state(p, g, filepath="data/live_state.json"):
     state = {
         "speed": p.speedKmh,
@@ -25,7 +37,7 @@ def write_live_state(p, g, filepath="data/live_state.json"):
     }
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     tmp_path = filepath + ".tmp"
-    
+
     try:
         with open(tmp_path, "w") as f:
             json.dump(state, f)
@@ -43,13 +55,13 @@ def write_lap_summary(lap_number, lap_time_ms, messages, filepath="data/last_lap
         json.dump(summary, f)
 
 def process_completed_lap(lap_number, session_folder, track_name):
-    print(f"\n[DEBUG] --- Processing completed lap {lap_number} ---")
+    debug_print(f"\n[DEBUG] --- Processing completed lap {lap_number} ---")
 
     best_file, best_duration = find_best_lap(session_folder)
     lap_file = os.path.join(session_folder, f"lap_{lap_number}.csv")
-    
+
     if best_file is None:
-        print("[DEBUG] No best lap found yet (likely the first lap).")
+        debug_print("[DEBUG] No best lap found yet (not enough valid track coverage).")
         lap_df = load_lap(lap_file)
         lap_time_ms = lap_df["lap_time_ms"].iloc[0]
         write_lap_summary(lap_number, lap_time_ms, ["First lap completed!"])
@@ -61,29 +73,23 @@ def process_completed_lap(lap_number, session_folder, track_name):
         return
 
     lap = load_lap(lap_file)
-    ghost = load_lap(best_file)    
-    
-    
-    lap_wear = compute_tyre_wear_rate(lap)
-    ghost_wear = compute_tyre_wear_rate(ghost)
-    print(f"[DEBUG] Lap wear rate (normalized): {lap_wear}")
-    print(f"[DEBUG] Ghost wear rate (normalized): {ghost_wear}")
-    
-    
-    print(f"[DEBUG] Lap {lap_number} position range: {lap['position'].min():.4f} - {lap['position'].max():.4f}")
-    print(f"[DEBUG] Ghost position range: {ghost['position'].min():.4f} - {ghost['position'].max():.4f}")
-    
+    ghost = load_lap(best_file)
+
+    debug_print(f"[DEBUG] Lap wear rate (normalized): {compute_tyre_wear_rate(lap)}")
+    debug_print(f"[DEBUG] Ghost wear rate (normalized): {compute_tyre_wear_rate(ghost)}")
+    debug_print(f"[DEBUG] Lap {lap_number} position range: {lap['position'].min():.4f} - {lap['position'].max():.4f}")
+    debug_print(f"[DEBUG] Ghost position range: {ghost['position'].min():.4f} - {ghost['position'].max():.4f}")
+    debug_print(f"[DEBUG] best_file used as ghost: {best_file}")
+
     common_pos, lap_times, lap_speeds, ghost_times, ghost_speeds = align_by_position(lap, ghost)
     delta = compute_deltas(lap_times, ghost_times)
     losses = find_biggest_losses(common_pos, delta)
-    print(f"[DEBUG] delta range: min={delta.min():.3f}s max={delta.max():.3f}s final={delta[-1]:.3f}s")
-    print(f"[DEBUG] Biggest losses (raw): {losses}")
-    print(f"[DEBUG] best_file used as ghost: {best_file}")
+    debug_print(f"[DEBUG] delta range: min={delta.min():.3f}s max={delta.max():.3f}s final={delta[-1]:.3f}s")
+    debug_print(f"[DEBUG] Biggest losses (raw): {losses}")
+
     time_messages = generate_feedback_messages(losses, common_positions=common_pos, delta=delta, track_name=track_name)
     tyre_messages = compare_tyre_wear(lap, ghost)
-
     all_messages = time_messages + tyre_messages
-    print(f"[DEBUG] Messages to speak: {all_messages}")
 
     speak(all_messages)
 
@@ -91,8 +97,10 @@ def process_completed_lap(lap_number, session_folder, track_name):
     lap_time_ms = lap_df["lap_time_ms"].iloc[0]
     write_lap_summary(lap_number, lap_time_ms, all_messages)
 
-    print("[DEBUG] --- Done processing lap ---\n")
-        
+    print(f"Lap {lap_number} feedback: {'; '.join(all_messages) if all_messages else 'no losses to report'}")
+    debug_print("[DEBUG] --- Done processing lap ---\n")
+
+
 def main():
     print("Connecting to Assetto Corsa's shared memory ...")
 
@@ -103,9 +111,8 @@ def main():
         static_data = read_static(shm_static)
         track_name = static_data.track
         
-        print(f"[DEBUG] Track read from static block: '{track_name}'")
         session_folder = create_session_folder(track_name)
-        print(f"[DEBUG] Session folder created: {session_folder}")
+        print(f"Track: {track_name} | Session: {session_folder}")
         shm_static.close()
     except Exception as e:
         print(f"Error opening shared memory: {e}")
@@ -125,9 +132,8 @@ def main():
             write_live_state(p, g)
 
             if g.completedLaps > last_laps:
-                print(f"\n[DEBUG] Lap boundary detected: completedLaps went from {last_laps} to {g.completedLaps}")
-                print(f"[DEBUG] iLastTime = {g.iLastTime} ms")
-                print(f"[DEBUG] frames collected for this lap: {len(frames)}")
+                debug_print(f"\n[DEBUG] Lap boundary detected: completedLaps went from {last_laps} to {g.completedLaps}")
+                debug_print(f"[DEBUG] iLastTime = {g.iLastTime} ms, frames collected = {len(frames)}")
 
                 save_lap_to_csv(frames, g.completedLaps, session_folder, g.iLastTime)
                 process_completed_lap(g.completedLaps, session_folder, track_name)
