@@ -197,7 +197,7 @@ none of the tested modules touch `capture.py`'s `connect_*()` functions.
 - [ ] Post-session dashboard (delta graph, track map coloured by time gained/lost)
 - [x] Recalibrate tyre wear thresholds against realistic (1x) wear rate
 - [ ] Fix "cold ghost" bias in tyre wear comparison (pick a separate warmed-up reference lap)
-- [ ] Corner ranges that wrap around the start/finish line
+- [x] Corner ranges that wrap around the start/finish line
 
 ## Notes
 
