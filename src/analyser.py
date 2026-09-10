@@ -90,7 +90,7 @@ def compute_tyre_wear_rate(lap_df):
         wear_rates[wheel] = (start_wear - end_wear) / coverage
     return wear_rates
 
-def compare_tyre_wear(lap_df, ghost_df, threshold_ratio=1.15):
+def compare_tyre_wear(lap_df, ghost_df, threshold_ratio=1.3, min_absolute_diff=0.05):
     lap_wear = compute_tyre_wear_rate(lap_df)
     ghost_wear = compute_tyre_wear_rate(ghost_df)
     
@@ -100,9 +100,11 @@ def compare_tyre_wear(lap_df, ghost_df, threshold_ratio=1.15):
         "tyre_wear_rl": "rear left",
         "tyre_wear_rr": "rear right",
     }
-    
     messages = []
     for wheel, label in wheel_labels.items():
+        absolute_diff = lap_wear[wheel] - ghost_wear[wheel]
+        if absolute_diff < min_absolute_diff:
+            continue 
         if ghost_wear[wheel] > 0 and lap_wear[wheel] > ghost_wear[wheel] * threshold_ratio:
             messages.append(f"You're wearing your {label} tyre faster than usual")
     

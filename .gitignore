@@ -5,3 +5,7 @@ data/*.csv
 .vscode/
 .DS_Store
 Thumbs.db
+
+*.csv
+*.json
+test_later.md

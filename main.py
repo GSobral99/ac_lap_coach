@@ -23,10 +23,15 @@ def write_live_state(p, g, filepath="data/live_state.json"):
         "tyre_temp_rl": p.tyreCoreTemperature[2],
         "tyre_temp_rr": p.tyreCoreTemperature[3],
     }
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
     tmp_path = filepath + ".tmp"
-    with open(filepath, "w") as f:
-        json.dump(state, f)
-    os.replace(tmp_path, filepath)
+    
+    try:
+        with open(tmp_path, "w") as f:
+            json.dump(state, f)
+        os.replace(tmp_path, filepath)
+    except PermissionError:
+        pass
 
 def write_lap_summary(lap_number, lap_time_ms, messages, filepath="data/last_lap_summary.json"):
     summary = {
@@ -43,13 +48,28 @@ def process_completed_lap(lap_number, session_folder, track_name):
     best_file, best_duration = find_best_lap(session_folder)
     lap_file = os.path.join(session_folder, f"lap_{lap_number}.csv")
     
+    if best_file is None:
+        print("[DEBUG] No best lap found yet (likely the first lap).")
+        lap_df = load_lap(lap_file)
+        lap_time_ms = lap_df["lap_time_ms"].iloc[0]
+        write_lap_summary(lap_number, lap_time_ms, ["First lap completed!"])
+        return
+
     if os.path.normpath(best_file) == os.path.normpath(lap_file):
         speak(["New best lap!"])
         write_lap_summary(lap_number, best_duration * 1000, ["New best lap!"])
         return
 
     lap = load_lap(lap_file)
-    ghost = load_lap(best_file)
+    ghost = load_lap(best_file)    
+    
+    
+    lap_wear = compute_tyre_wear_rate(lap)
+    ghost_wear = compute_tyre_wear_rate(ghost)
+    print(f"[DEBUG] Lap wear rate (normalized): {lap_wear}")
+    print(f"[DEBUG] Ghost wear rate (normalized): {ghost_wear}")
+    
+    
     print(f"[DEBUG] Lap {lap_number} position range: {lap['position'].min():.4f} - {lap['position'].max():.4f}")
     print(f"[DEBUG] Ghost position range: {ghost['position'].min():.4f} - {ghost['position'].max():.4f}")
     

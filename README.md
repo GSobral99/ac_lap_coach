@@ -174,6 +174,13 @@ none of the tested modules touch `capture.py`'s `connect_*()` functions.
 
 ![CI](https://github.com/GSobral99/ac_lap_coach/actions/workflows/ci.yml/badge.svg)
 
+
+##Limitations (for now)
+
+**Tyre wear feedback.** Each wheel's wear rate (start-of-lap wear minus end-of-lap wear, normalized by the fraction of track actually covered) is compared against the ghost lap's wear rate; a wheel wearing noticeably faster than in the ghost lap gets flagged by name (e.g. "you're wearing your front left tyre faster than usual"), gated by both a relative threshold (`threshold_ratio`) and a minimum absolute difference (`min_absolute_diff`) so tiny variations on a wheel with naturally low wear don't produce false positives. Calibrated against real 1x wear-rate sessions (an earlier version was tuned against 3x for faster iteration, which turned out to need very different thresholds).
+
+**Known limitation: a "fast but cold" lap can become a misleading wear ghost.** The ghost lap is selected purely by lap time (subject to the coverage requirement above) - it has no idea whether the tyres were fully up to temperature during that lap. Tyres in AC barely wear at all for the first lap or two of a session while they're cold, so if the fastest valid lap happens to be an early one, every later lap with properly warmed-up (and therefore actually wearing) tyres will look like it's wearing "faster than usual" - even under identical driving. This was caught by comparing raw wear rates across a real session (a `lap_3` ghost with `~0.18-0.21` wear/lap kept flagging every subsequent lap at `~0.25-0.30` wear/lap, a difference driven by tyre temperature, not driving). Not yet fixed - a proper fix would pick (or blend) a separate wear reference lap that's confirmed to have warmed-up tyres, rather than reusing the time-based ghost for this comparison too.
+
 ## Status
 
 - [x] Shared memory capture (physics + graphics + static)
@@ -188,7 +195,8 @@ none of the tested modules touch `capture.py`'s `connect_*()` functions.
 - [x] Tyre wear feedback (per-wheel, relative to ghost lap)
 - [x] Live phone dashboard (Streamlit, read-only view of live telemetry + last lap summary over local network)
 - [ ] Post-session dashboard (delta graph, track map coloured by time gained/lost)
-- [ ] Recalibrate tyre wear thresholds against realistic (1x) wear rate
+- [x] Recalibrate tyre wear thresholds against realistic (1x) wear rate
+- [ ] Fix "cold ghost" bias in tyre wear comparison (pick a separate warmed-up reference lap)
 - [ ] Corner ranges that wrap around the start/finish line
 
 ## Notes
