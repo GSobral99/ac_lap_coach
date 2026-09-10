@@ -175,7 +175,7 @@ none of the tested modules touch `capture.py`'s `connect_*()` functions.
 ![CI](https://github.com/GSobral99/ac_lap_coach/actions/workflows/ci.yml/badge.svg)
 
 
-##Limitations (for now)
+## Limitations (for now)
 
 **Tyre wear feedback.** Each wheel's wear rate (start-of-lap wear minus end-of-lap wear, normalized by the fraction of track actually covered) is compared against the ghost lap's wear rate; a wheel wearing noticeably faster than in the ghost lap gets flagged by name (e.g. "you're wearing your front left tyre faster than usual"), gated by both a relative threshold (`threshold_ratio`) and a minimum absolute difference (`min_absolute_diff`) so tiny variations on a wheel with naturally low wear don't produce false positives. Calibrated against real 1x wear-rate sessions (an earlier version was tuned against 3x for faster iteration, which turned out to need very different thresholds).
 
